@@ -1,0 +1,66 @@
+#!/usr/bin/bash
+#--------------
+#  YTDL
+#--------------
+# :: Wrapper script for youtube-dl 
+
+
+# :: Functions
+
+clipbrd=$(xclip -selection clipboard -o)
+vidurl=$(echo "$clipbrd" | column -t -s / | awk '{print $3}' | cut -c 9-19)
+
+showhelp(){
+    echo "
+    Usage:  ytdl [OPTION]
+
+    Options:
+    -a  Audio (best quality -- .wav)
+    -v  Video (best quality -- .mp4)
+    -h  Show this help message
+    -H  Show the help message of youtube-dl
+
+    Note: ytdl assumes that a youtube link is present in the clipboard
+    "
+}
+
+urlcheck(){
+    if [ $(echo $vidurl | wc -c) -ne 12 ]
+    then
+        echo "Invalid video URL in clipboard"
+        showhelp
+        exit 1
+    fi
+}
+
+dlvideo(){
+    urlcheck
+    youtube-dl -f bestvideo+bestaudio -o "~/Videos/%(title)s.%(ext)s" --geo-bypass $vidurl
+}
+
+dlaudio(){
+    urlcheck
+    youtube-dl --extract-audio --audio-format wav -o "~/Music/%(title)s.%(ext)s" --geo-bypass $vidurl
+}
+
+
+# :: Exec
+
+while getopts ":avhH" option; do
+    case $option in
+        a) # Download Audio
+            dlaudio;;
+        v) # Download Video
+            dlvideo;;
+        h) # Display Help
+            showhelp
+            exit;;
+        H) # Display youtube-dl help
+            youtube-dl --help
+            exit;;
+        \?) # Invalid Option
+            echo "$1: invalid option"
+            showhelp
+            exit 1;;
+    esac
+done

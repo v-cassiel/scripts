@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+#------------------
+#  SETWALL
+#------------------
+# :: Sets the first two marked images as wallpaper and/or lockscreen background
+
+
+# :: Functions
+
+showhelp(){
+    echo "
+    Usage:  setwall <path/to/directory>
+    
+    To select images, press 'm', then 'q' to quit.
+    Only the first 2 marked images will count.
+
+    The first marked image will be set as wallpaper,
+    while the second will be used as lockscreen background.
+    
+    If only one image is chosen, it will be used for both.
+    "
+}
+
+depcheck(){
+    declare -a Deps=("xwallpaper" "betterlockscreen" "sxiv")
+
+    for app in ${Deps[@]}; do
+        if [ ! -x /usr/bin/$app ]
+        then
+            echo "Error, Dependency not satisfied: $app"
+            exit 1
+        fi
+    done
+
+    unset Deps
+}
+
+get_img(){
+    wallpaper=$(echo "$marked" | sed -n '1{p;q}')
+    counter=$(echo "$marked" | wc -l)
+    case $counter in
+        1) lockscreen=$wallpaper;;
+        2) lockscreen=$(echo "$marked" | sed -n '2{p;q}');;
+        *) exit 1;;
+    esac
+}
+
+cache_img(){
+    if [ $(echo "$marked" | wc -w) -eq 0 ]
+    then
+        exit 1
+    else
+        cp -f $wallpaper $HOME/.cache/wallpaper
+        cp -f $lockscreen $HOME/.cache/lockscreen
+    fi
+}
+
+set_wall(){
+    xwallpaper --center $HOME/.cache/wallpaper &> /dev/null
+}
+
+set_lock(){
+    betterlockscreen -u $HOME/.cache/lockscreen &> /dev/null
+}
+
+notif_w(){
+    if [ -x /usr/bin/dunstify ]
+    then
+        dunstify -a Theme -i $HOME/.cache/wallpaper "Wallpaper Changed"
+    else
+        notify-send -a Theme -i $HOME/.cache/wallpaper "Wallpaper Changed"
+    fi
+}
+
+notif_l(){
+    if [ -x /usr/bin/dunstify ]
+    then
+        dunstify -a Theme -i $HOME/.cache/lockscreen "Lockscreen Changed"
+    else
+        notify-send -a Theme -i $HOME/.cache/lockscreen "Lockscreen Changed"
+    fi
+}
+
+# :: Exec
+
+main(){
+    depcheck
+    get_img
+    cache_img
+    set_wall
+    notif_w
+    set_lock
+    notif_l
+}
+
+if [ ! -d $1 ]
+then
+    echo "
+    Error: $1 is not a directory
+    "
+    showhelp
+    exit 1
+else
+    marked=$(sxiv -tbrqo $1 | head -n 2)
+    main &
+fi

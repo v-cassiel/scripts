@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+#------------------
+#  SYSGRADE (WIP)
+#------------------
+# :: Full system upgrade for Arch using timeshift for backup
+# :: Uses aura for package management
+
+
+# :: Functions
+
+sys_backup(){
+    sudo timeshift --create --comments "Before full system upgrade"
+}
+
+upd_std(){
+    sudo aura -S archlinux-keyring --noconfirm
+    sudo aura -Syu --noconfirm
+}
+
+upd_aur(){
+    sudo aura -Au --noconfirm
+}
+
+kernbuild(){
+    sudo mkinitcpio -p linux
+}
+
+
+# :: Exec
+
+sys_backup && upd_std && upd_aur && kernbuild && echo -e "\033[34;1mDone, Reboot recommended\033[0m"
